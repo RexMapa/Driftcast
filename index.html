@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Driftcast — An app that listens before it plays</title>
+<style>
+:root{
+  --bg:#0a0910; --panel:#161228; --panel-b:#28223f;
+  --ink:#f4f2f8; --ink-dim:#a49dbb; --ink-faint:#655e7c;
+  --accent:#a78bfa; --rule:#221d34;
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: Georgia, serif; --sans: -apple-system, "Segoe UI", Inter, sans-serif;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);line-height:1.5;}
+.wrap{max-width:1000px;margin:0 auto;padding:0 24px;}
+@media(max-width:640px){.wrap{padding:0 18px;}}
+nav{padding:20px 0;border-bottom:1px solid var(--rule);}
+nav .wrap{display:flex;justify-content:space-between;align-items:center;}
+.brand{font-family:var(--serif);font-weight:700;font-size:16px;}
+.brand span{color:var(--ink-faint);margin-right:8px;}
+.navmeta{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-faint);}
+section{padding:64px 0;}
+.eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;color:var(--accent);margin-bottom:18px;}
+h1{font-family:var(--serif);font-weight:700;font-size:clamp(28px,4.4vw,44px);line-height:1.12;margin:0 0 18px;max-width:680px;}
+h1 em{font-style:italic;color:var(--accent);}
+h2{font-family:var(--serif);font-weight:700;font-size:22px;margin:0 0 16px;}
+p.lede{font-size:15.5px;color:var(--ink-dim);max-width:540px;margin:0 0 8px;}
+
+.demo-wrap{display:flex;justify-content:center;padding:20px 0 0;}
+.phone{width:340px;max-width:100%;background:#100d1c;border:2px solid #2c2645;border-radius:32px;padding:16px;box-shadow:0 40px 90px -20px rgba(0,0,0,.7);}
+.pstat{display:flex;justify-content:space-between;font-size:11px;color:var(--ink-dim);margin-bottom:12px;font-family:var(--mono);}
+.view{display:none;}
+.view.on{display:block;}
+.vtop{display:flex;align-items:center;gap:10px;margin-bottom:14px;min-height:20px;}
+.vtop .back{background:none;border:none;color:var(--ink-dim);font-size:18px;cursor:pointer;padding:0;}
+.vtop h4{margin:0;font-size:12.5px;color:var(--ink-dim);font-weight:500;}
+.greet{font-size:11px;color:var(--ink-faint);margin-bottom:3px;}
+.q{font-family:var(--serif);font-weight:700;font-size:18px;margin-bottom:14px;}
+textarea{width:100%;background:var(--panel);border:1px solid var(--panel-b);border-radius:12px;color:var(--ink);padding:13px;font-size:13.5px;font-family:var(--sans);resize:none;min-height:90px;outline:none;}
+textarea:focus{border-color:var(--accent);}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px;}
+.chip{font-size:11px;padding:6px 11px;border-radius:20px;border:1px solid var(--panel-b);color:var(--ink-dim);background:none;cursor:pointer;}
+.chip.on{background:var(--accent);color:#0a0910;border-color:var(--accent);font-weight:700;}
+.btn{width:100%;background:var(--accent);color:#0a0910;border:none;padding:13px;border-radius:11px;font-size:13.5px;font-weight:700;cursor:pointer;}
+.btn:disabled{opacity:.45;}
+.tiny{text-align:center;font-size:10px;color:var(--ink-faint);margin-top:8px;font-family:var(--mono);}
+.bridge{background:var(--panel);border:1px solid var(--panel-b);border-radius:11px;padding:13px;margin-bottom:14px;min-height:60px;}
+.bridge .k{font-family:var(--mono);font-size:9.5px;color:var(--accent);letter-spacing:.05em;margin-bottom:6px;}
+.bridge p{margin:0;font-size:13px;font-style:italic;color:var(--ink);line-height:1.5;}
+.voicebtn{margin-top:10px;background:none;border:1px solid var(--accent);color:var(--accent);font-size:11px;font-weight:600;padding:6px 12px;border-radius:20px;cursor:pointer;font-family:var(--sans);}
+.voicebtn:disabled{opacity:.4;border-color:var(--ink-faint);color:var(--ink-faint);cursor:default;}
+.ep{background:var(--panel);border:1px solid var(--panel-b);border-radius:11px;padding:12px;margin-bottom:9px;cursor:pointer;display:flex;justify-content:space-between;gap:10px;align-items:center;}
+.ep:active{border-color:var(--accent);}
+.ep .t{font-weight:600;font-size:13px;margin-bottom:3px;}
+.ep .m{font-size:10.5px;color:var(--ink-faint);}
+.badge{font-size:9px;font-family:var(--mono);padding:3px 6px;border-radius:5px;background:#1c1730;color:var(--ink-dim);white-space:nowrap;}
+.art{width:100%;aspect-ratio:1.7;border-radius:12px;background:radial-gradient(circle at 30% 25%,#54438e,#0f0c1a 75%);margin-bottom:14px;}
+.ptitle{font-family:var(--serif);font-size:16px;font-weight:700;margin:0 0 2px;}
+.pmeta{font-size:11.5px;color:var(--ink-faint);margin-bottom:16px;}
+.pbar{height:3px;background:var(--panel-b);border-radius:2px;position:relative;margin-bottom:5px;}
+.pbar i{position:absolute;left:0;top:0;bottom:0;background:var(--accent);width:0%;}
+.ptimes{display:flex;justify-content:space-between;font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-bottom:18px;}
+.controls{display:flex;align-items:center;justify-content:center;gap:22px;margin-bottom:20px;}
+.ctl{background:none;border:none;color:var(--ink);cursor:pointer;font-family:var(--mono);font-size:12px;}
+.playbtn{width:48px;height:48px;border-radius:50%;background:var(--ink);color:var(--bg);border:none;font-size:16px;cursor:pointer;}
+.playbtn:disabled{opacity:.4;cursor:default;}
+.mixrow{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.mixrow .lbl{width:66px;font-size:11.5px;color:var(--ink-dim);}
+.mixrow input[type=range]{flex:1;accent-color:var(--accent);}
+.mixrow .val{width:30px;text-align:right;font-family:var(--mono);font-size:10px;color:var(--ink-faint);}
+.status-line{text-align:center;font-size:11px;color:var(--ink-faint);padding:20px 0;font-style:italic;}
+.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--accent);margin-right:5px;animation:pulse 1s infinite ease-in-out;}
+@keyframes pulse{0%,100%{opacity:.3;}50%{opacity:1;}}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:20px;}
+@media(max-width:700px){.steps{grid-template-columns:1fr;}}
+.step .n{font-family:var(--mono);font-size:11px;color:var(--accent);margin-bottom:8px;}
+.step h3{font-family:var(--serif);font-size:16px;margin:0 0 6px;font-weight:700;}
+.step p{font-size:13px;color:var(--ink-dim);margin:0;}
+footer{padding:36px 0 50px;text-align:center;color:var(--ink-faint);font-size:11.5px;font-family:var(--mono);}
+</style>
+</head>
+<body>
+
+<nav><div class="wrap">
+  <span class="brand"><span>‹</span>Driftcast</span>
+  <span class="navmeta">PRODUCT CONCEPT · SLEEP</span>
+</div></nav>
+
+<section style="padding-bottom:8px;"><div class="wrap">
+  <div class="eyebrow">— AN APP THAT LISTENS BEFORE IT PLAYS</div>
+  <h1>Tell it what's looping. It'll find something better <em>to think about.</em></h1>
+  <p class="lede">This is the actual mechanic, live: type the specific thought keeping you up, and Driftcast writes you a short spoken bridge and curates a mix — then layers real, synthesized rain, brown noise, or a fireplace underneath it, with a sleep timer that fades everything out.</p>
+</div></section>
+
+<section style="padding-top:0;"><div class="wrap">
+  <div class="demo-wrap"><div class="phone">
+    <div class="pstat"><span id="clock">22:47</span><span>📶 🔋</span></div>
+
+    <div class="view on" id="v-home">
+      <div class="greet" id="greet">Good evening, still up?</div>
+      <div class="q">What's keeping you up?</div>
+      <textarea id="worry" maxlength="220" placeholder="Can't stop replaying tomorrow's client presentation..."></textarea>
+      <div class="chips">
+        <button class="chip" data-t="Can't stop replaying tomorrow's client presentation. Keep imagining the questions going wrong.">Work stress</button>
+        <button class="chip" data-t="Rent's going up again and I can't stop doing the math on it.">Money</button>
+        <button class="chip" data-t="Still thinking about that argument with my sister earlier.">Relationship</button>
+        <button class="chip" data-t="Can't switch my brain off, keep checking how my body feels.">Health worry</button>
+      </div>
+      <button class="btn" id="curateBtn">Curate my sleep-cast →</button>
+      <div class="tiny" id="wc">0 words. That's plenty.</div>
+    </div>
+
+    <div class="view" id="v-results">
+      <div class="vtop"><button class="back" data-to="v-home">←</button><h4>Your mix, ready</h4></div>
+      <div id="resultsBody">
+        <div class="status-line"><span class="dot"></span>Driftcast is listening…</div>
+      </div>
+    </div>
+
+    <div class="view" id="v-player">
+      <div class="vtop"><button class="back" data-to="v-results">←</button><h4>Now playing</h4></div>
+      <div class="art"></div>
+      <div class="ptitle" id="pTitle">—</div>
+      <div class="pmeta" id="pMeta">—</div>
+      <div class="pbar"><i id="pFill"></i></div>
+      <div class="ptimes"><span id="pCur">00:00</span><span id="pDur">00:00</span></div>
+      <div class="controls">
+        <button class="ctl" id="skipBack">−15</button>
+        <button class="playbtn" id="playPause">▶</button>
+        <button class="ctl" id="skipFwd">+15</button>
+      </div>
+      <div class="mixrow"><span class="lbl">Rain</span><input type="range" id="mRain" min="0" max="100" value="62"><span class="val" id="vRain">62%</span></div>
+      <div class="mixrow"><span class="lbl">Brown noise</span><input type="range" id="mBrown" min="0" max="100" value="0"><span class="val" id="vBrown">0%</span></div>
+      <div class="mixrow"><span class="lbl">Fireplace</span><input type="range" id="mFire" min="0" max="100" value="0"><span class="val" id="vFire">0%</span></div>
+    </div>
+  </div></div>
+  <div class="tiny" style="margin-top:14px;">The bridge line and episode picks above are generated live from what you type. Rain, brown noise, and fireplace are synthesized in your browser, not audio files.</div>
+</div></section>
+
+<section style="border-top:1px solid var(--rule);"><div class="wrap">
+  <div class="eyebrow">— HOW IT WORKS</div>
+  <div class="steps">
+    <div class="step"><div class="n">01</div><h3>Tell it what's looping</h3><p>Type or tap a nudge. The actual thought, not a mood.</p></div>
+    <div class="step"><div class="n">02</div><h3>It writes the bridge</h3><p>A short original line acknowledges the specific worry, then hands off to a curated mix.</p></div>
+    <div class="step"><div class="n">03</div><h3>It mixes you under</h3><p>Rain, brown noise or a fireplace fades in beneath it and fades out on a timer.</p></div>
+  </div>
+</div></section>
+
+<footer>DRIFTCAST — FREE: ONE MIX A NIGHT · DRIFTCAST+: £6.49/MO</footer>
+
+<script>
+(function(){
+"use strict";
+var state = { worryText:"", playing:false, elapsed:0, timerId:null, current:null };
+
+function showView(id){
+  document.querySelectorAll(".view").forEach(function(v){v.classList.toggle("on", v.id===id);});
+}
+document.querySelectorAll(".back").forEach(function(b){b.addEventListener("click",function(){
+  if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  showView(b.dataset.to);
+});});
+
+function updateClock(){
+  var d=new Date(), hh=String(d.getHours()).padStart(2,"0"), mm=String(d.getMinutes()).padStart(2,"0");
+  document.getElementById("clock").textContent=hh+":"+mm;
+  var h=d.getHours();
+  document.getElementById("greet").textContent = h<5?"Still up. Rough one?":(h<12?"Morning. Trouble sleeping?":(h<18?"Afternoon check-in":"Good evening, still up?"));
+}
+updateClock(); setInterval(updateClock,30000);
+
+var worryEl=document.getElementById("worry");
+document.querySelectorAll(".chips .chip").forEach(function(c){
+  c.addEventListener("click",function(){
+    document.querySelectorAll(".chips .chip").forEach(function(x){x.classList.remove("on");});
+    c.classList.add("on");
+    worryEl.value=c.dataset.t; updateWC();
+  });
+});
+function updateWC(){
+  var w=worryEl.value.trim().split(/\s+/).filter(Boolean).length;
+  document.getElementById("wc").textContent=w+" word"+(w===1?"":"s")+". That's plenty.";
+}
+worryEl.addEventListener("input",updateWC);
+
+var FALLBACK_BRIDGES = {
+  default:"Whatever it is, it'll still be there tomorrow with a clearer head to look at it. For tonight, let's put it down."
+};
+var FALLBACK_EPS = [
+  {title:"The Slow Decline of the Roman Grain Trade", tag:"Fall Asleep History", source:"Spotify", minutes:38},
+  {title:"Why Brains Catastrophize at Night", tag:"The Overthinking Fix", source:"YouTube", minutes:22},
+  {title:"A History of Filing Cabinets", tag:"Boring Things Explained", source:"SoundCloud", minutes:31}
+];
+
+async function callApi(prompt){
+  var res = await fetch("/api/generate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt: prompt })
+  });
+  if(!res.ok) throw new Error("API error " + res.status);
+  var data = await res.json();
+  return data.text || "";
+}
+function parseJsonLoose(text){
+  var cleaned = text.replace(/```json|```/g, "").trim();
+  return JSON.parse(cleaned);
+}
+
+async function curate(){
+  var text = worryEl.value.trim();
+  if(!text) { worryEl.focus(); return; }
+  state.worryText = text;
+  showView("v-results");
+  var body=document.getElementById("resultsBody");
+  body.innerHTML='<div class="status-line"><span class="dot"></span>Driftcast is listening…</div>';
+
+  var data=null;
+  try{
+    var prompt = "You are the curation engine inside Driftcast, a sleep app. A user just typed this specific worry into the app at bedtime: \"" + text.replace(/"/g,"'") + "\". " +
+      "Respond ONLY with JSON, no markdown fences, matching exactly: " +
+      "{\"bridge\": string (an original, calm, second-person spoken line under 35 words that acknowledges this specific worry by name and gently hands off to something else to listen to — no clichés like 'take a deep breath'), " +
+      "\"episodes\": [3 objects each {\"title\": string (a plausible sleep-appropriate podcast/audio episode title related loosely to the worry's topic, boring/calm in tone, invented, not a real show), \"tag\": string (a short invented show name), \"source\": one of \"Spotify\"|\"YouTube\"|\"SoundCloud\", \"minutes\": integer between 15 and 45}]}";
+    var rawText = await callApi(prompt);
+    data = parseJsonLoose(rawText);
+  }catch(e){ data=null; }
+
+  if(!data || !data.bridge || !data.episodes){
+    data = { bridge: FALLBACK_BRIDGES.default, episodes: FALLBACK_EPS };
+  }
+
+  var html = '<div class="bridge"><div class="k">THE BRIDGE</div><p>"'+data.bridge+'"</p><button class="voicebtn" id="bridgeVoiceBtn">▶ Play narration</button></div>';
+  data.episodes.forEach(function(ep){
+    html += '<div class="ep" data-t="'+encodeURIComponent(ep.title)+'" data-tag="'+encodeURIComponent(ep.tag)+'" data-src="'+ep.source+'" data-min="'+ep.minutes+'">'+
+      '<div><div class="t">'+ep.title+'</div><div class="m">'+ep.tag+' · '+ep.minutes+' min</div></div><div class="badge">'+ep.source+'</div></div>';
+  });
+  body.innerHTML = html;
+  var voiceBtn = document.getElementById("bridgeVoiceBtn");
+  if(!('speechSynthesis' in window)){
+    voiceBtn.disabled = true; voiceBtn.textContent = "Narration unsupported here";
+  } else {
+    voiceBtn.addEventListener("click", function(){ speakBridge(data.bridge, voiceBtn); });
+    speakBridge(data.bridge, voiceBtn); // best-effort autoplay; falls back to the button tap above
+  }
+  body.querySelectorAll(".ep").forEach(function(el){
+    el.addEventListener("click",function(){
+      playEpisode({
+        t: decodeURIComponent(el.dataset.t), tag: decodeURIComponent(el.dataset.tag),
+        src: el.dataset.src, dur: parseInt(el.dataset.min,10)*60
+      });
+    });
+  });
+}
+document.getElementById("curateBtn").addEventListener("click",curate);
+
+// ---- spoken narration for the bridge (real speech, via the browser's own voice) ----
+var cachedVoice = null;
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return null;
+  var voices = window.speechSynthesis.getVoices();
+  if(!voices.length) return null;
+  return voices.find(function(v){return /en/i.test(v.lang) && /female|samantha|victoria|karen|moira/i.test(v.name);})
+    || voices.find(function(v){return /en/i.test(v.lang);}) || voices[0];
+}
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = function(){ cachedVoice = pickVoice(); };
+  cachedVoice = pickVoice();
+}
+function speakBridge(text, btn){
+  if(!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  var u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.88; u.pitch = 0.92; u.volume = 1;
+  var v = cachedVoice || pickVoice();
+  if(v) u.voice = v;
+  if(btn){
+    btn.textContent = "❚❚ Playing narration";
+    u.onend = function(){ btn.textContent = "▶ Play narration"; };
+    u.onerror = function(){ btn.textContent = "▶ Play narration"; };
+  }
+  window.speechSynthesis.speak(u);
+}
+
+// ---- real synthesized ambient audio ----
+var ctx=null, master=null, nodes={};
+function ensureAudio(){
+  if(ctx) return;
+  ctx=new (window.AudioContext||window.webkitAudioContext)();
+  master=ctx.createGain(); master.gain.value=0.9; master.connect(ctx.destination);
+  nodes.rain=buildLayer("lowpass",1400,false);
+  nodes.brown=buildLayer("lowpass",400,true);
+  nodes.fire=buildLayer("bandpass",2200,false,900);
+}
+function buildLayer(type,freq,brown,q){
+  var bufSize=2*ctx.sampleRate, buf=ctx.createBuffer(1,bufSize,ctx.sampleRate), data=buf.getChannelData(0), lastOut=0;
+  for(var i=0;i<bufSize;i++){
+    var white=Math.random()*2-1;
+    if(brown){ lastOut=(lastOut+0.02*white)/1.02; data[i]=lastOut*3.5; } else data[i]=white;
+  }
+  var src=ctx.createBufferSource(); src.buffer=buf; src.loop=true;
+  var filt=ctx.createBiquadFilter(); filt.type=type; filt.frequency.value=freq; if(q)filt.Q.value=q;
+  var gain=ctx.createGain(); gain.gain.value=0;
+  src.connect(filt); filt.connect(gain); gain.connect(master); src.start();
+  return {gain:gain};
+}
+function setLayer(name,pct){ ensureAudio(); nodes[name].gain.gain.value=(pct/100)*0.5; }
+
+function fmt(s){ s=Math.max(0,Math.round(s)); var m=Math.floor(s/60),ss=s%60; return String(m).padStart(2,"0")+":"+String(ss).padStart(2,"0"); }
+
+var FALLBACK_NARRATION = "This episode traces the quiet, procedural history of the subject at hand: the committees that met, the forms that were filed, the figures that were revised twice and then left alone. None of it was urgent. Most of it still isn't. For the next few minutes, that's rather the point. Somewhere in an office, someone signed a document, and somewhere else, someone else filed it. The weather that day was unremarkable. So was the one after. It is, on the whole, a story about nothing happening, told slowly, and on purpose, until it isn't a story anymore, just a sound.";
+
+async function playEpisode(ep){
+  if('speechSynthesis' in window) window.speechSynthesis.cancel();
+  clearTicker();
+  state.current=ep; state.playing=false; state.lastFrac=0; state.narrationFull=null; state.estDur=ep.dur;
+  document.getElementById("pTitle").textContent=ep.t;
+  document.getElementById("pMeta").textContent="Writing the episode…";
+  document.getElementById("pFill").style.width="0%";
+  document.getElementById("pCur").textContent="00:00";
+  document.getElementById("pDur").textContent="--:--";
+  document.getElementById("playPause").disabled=true;
+  showView("v-player");
+  ensureAudio(); if(ctx.state==="suspended") ctx.resume();
+  setLayer("rain", document.getElementById("mRain").value);
+
+  var narration = null;
+  try{
+    var prompt = "Write the actual narration script for a podcast episode titled \""+ep.t+"\" from a slow, calming, sleep-oriented show called \""+ep.tag+"\". " +
+      "250-320 words, flowing prose (no headers, no bullet points), third person or neutral, factual-sounding but gentle and a little boring on purpose, designed to be listened to while falling asleep. Do not mention that it's for sleep. Just narrate the subject plainly and calmly. Return only the narration text, nothing else.";
+    var rawNarration = await callApi(prompt);
+    if(rawNarration && rawNarration.trim()) narration = rawNarration.trim();
+  }catch(e){ narration = null; }
+  if(!narration) narration = FALLBACK_NARRATION;
+
+  state.narrationFull = narration;
+  var words = narration.split(/\s+/).filter(Boolean).length;
+  state.estDur = Math.max(30, Math.round(words/2.5)); // ~150wpm
+  document.getElementById("pDur").textContent = fmt(state.estDur);
+  document.getElementById("pMeta").textContent = ep.tag+" · "+ep.src;
+  document.getElementById("playPause").disabled=false;
+
+  if('speechSynthesis' in window){
+    speakFrom(narration, 0);
+  } else {
+    document.getElementById("pMeta").textContent += " · narration unsupported in this browser";
+  }
+}
+
+function updateProgress(frac){
+  frac = Math.max(0, Math.min(1, frac));
+  state.lastFrac = frac;
+  document.getElementById("pFill").style.width=(frac*100)+"%";
+  document.getElementById("pCur").textContent=fmt(frac*state.estDur);
+}
+
+var tickHandle=null;
+function clearTicker(){ if(tickHandle){ clearInterval(tickHandle); tickHandle=null; } }
+function startTicker(){
+  clearTicker();
+  tickHandle=setInterval(function(){
+    if(!state.playing || !state.estDur) return;
+    var elapsedNow = state.baseElapsedSec + (Date.now()-state.playStartTs)/1000;
+    updateProgress(elapsedNow/state.estDur);
+  },300);
+}
+
+function speakFrom(fullText, offsetChars){
+  window.speechSynthesis.cancel();
+  var sub = fullText.slice(offsetChars);
+  if(!sub.trim()){ togglePlay(false); updateProgress(1); clearTicker(); return; }
+  var u = new SpeechSynthesisUtterance(sub);
+  u.rate = 0.93; u.pitch = 0.95;
+  var v = cachedVoice || pickVoice();
+  if(v) u.voice = v;
+  u.onend = function(){
+    if(offsetChars + sub.length >= fullText.length){ togglePlay(false); updateProgress(1); clearTicker(); }
+  };
+  window.speechSynthesis.speak(u);
+  state.playing = true;
+  state.baseElapsedSec = (offsetChars/fullText.length) * state.estDur;
+  state.playStartTs = Date.now();
+  startTicker();
+  document.getElementById("playPause").textContent="❚❚";
+}
+
+function togglePlay(force){
+  var was = state.playing;
+  state.playing = typeof force==="boolean" ? force : !state.playing;
+  document.getElementById("playPause").textContent = state.playing?"❚❚":"▶";
+  if(state.playing && !was){
+    state.playStartTs = Date.now();
+    startTicker();
+  } else if(!state.playing && was){
+    if(state.playStartTs!=null){ state.baseElapsedSec += (Date.now()-state.playStartTs)/1000; }
+    clearTicker();
+  }
+  if('speechSynthesis' in window){
+    if(state.playing){ if(window.speechSynthesis.paused) window.speechSynthesis.resume(); }
+    else { window.speechSynthesis.pause(); }
+  }
+  if(ctx && state.playing) ctx.resume();
+}
+function skip(deltaSec){
+  if(!state.narrationFull || !state.estDur) return;
+  var curSec = state.lastFrac*state.estDur;
+  var newFrac = Math.max(0, Math.min(1, (curSec+deltaSec)/state.estDur));
+  var idx = Math.round(newFrac*state.narrationFull.length);
+  while(idx < state.narrationFull.length && idx>0 && !/\s/.test(state.narrationFull[idx-1])) idx++;
+  speakFrom(state.narrationFull, idx);
+}
+document.getElementById("playPause").addEventListener("click",function(){togglePlay();});
+document.getElementById("skipBack").addEventListener("click",function(){ skip(-15); });
+document.getElementById("skipFwd").addEventListener("click",function(){ skip(15); });
+[["mRain","rain","vRain"],["mBrown","brown","vBrown"],["mFire","fire","vFire"]].forEach(function(a){
+  document.getElementById(a[0]).addEventListener("input",function(e){
+    setLayer(a[1], e.target.value); document.getElementById(a[2]).textContent=e.target.value+"%";
+  });
+});
+})();
+</script>
+</body>
+</html>
